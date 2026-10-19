@@ -1,6 +1,3 @@
-/* ===== Native HTTP bridge (Android) =====
-   عند وجود window.NativeHttp (من الجافا) تُرسل كل طلبات kick.com عبر الطبقة الأصلية
-   فلا يوجد CORS. خارج التطبيق (متصفح عادي) يعمل fetch كالمعتاد. */
 (function () {
     if (typeof window === 'undefined' || !window.NativeHttp || window.__nativeHttpInstalled) return;
     window.__nativeHttpInstalled = true;

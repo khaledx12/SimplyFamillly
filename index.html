@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>لوحة أكواد BadBoy Kick</title>
+<style>
+:root{--bg:#0A0F08;--card:#111a12;--line:#22301f;--fg:#e8f0e6;--mut:#8da08a;--acc:#53fc18;--bad:#ff6b7d;--warn:#ffc857}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--fg);font-family:Cairo,Tajawal,system-ui,Arial,sans-serif;font-size:15px;line-height:1.6}
+.wrap{max-width:720px;margin:0 auto;padding:14px}
+h1{font-size:20px;margin:6px 0 14px;color:var(--acc)}
+h2{font-size:16px;margin:0 0 10px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px;margin-bottom:12px}
+label{display:block;font-size:13px;color:var(--mut);margin:8px 0 4px}
+input,select,textarea{width:100%;background:#0c140d;color:var(--fg);border:1px solid var(--line);border-radius:10px;padding:10px;font:inherit}
+input[dir=ltr],textarea{direction:ltr;text-align:left}
+.row{display:flex;gap:8px}.row>*{flex:1}
+button{background:var(--acc);color:#000;border:0;border-radius:10px;padding:10px 14px;font:inherit;font-weight:700;cursor:pointer}
+button.sec{background:#1d2a1d;color:var(--fg)}button.bad{background:#3a1820;color:var(--bad)}
+button:disabled{opacity:.5}
+.tabs{display:flex;gap:6px;margin-bottom:12px}.tabs button{flex:1;background:#1d2a1d;color:var(--fg)}.tabs button.on{background:var(--acc);color:#000}
+.msg{margin-top:8px;font-size:13px;min-height:18px}.ok{color:var(--acc)}.err{color:var(--bad)}
+.code{border:1px solid var(--line);border-radius:12px;padding:10px;margin-bottom:8px;background:#0c140d}
+.code b{direction:ltr;display:inline-block;font-size:16px;letter-spacing:.5px}
+.tag{display:inline-block;font-size:12px;padding:2px 8px;border-radius:99px;margin-inline-start:6px}
+.t-new{background:#1d2a1d;color:var(--mut)}.t-on{background:rgba(83,252,24,.15);color:var(--acc)}
+.t-off{background:rgba(255,107,125,.15);color:var(--bad)}.t-exp{background:rgba(255,200,87,.15);color:var(--warn)}
+.meta{font-size:12px;color:var(--mut);margin:4px 0 8px}.btns{display:flex;gap:6px;flex-wrap:wrap}.btns button{padding:6px 10px;font-size:13px}
+.hide{display:none}.hint{font-size:12px;color:var(--mut)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>لوحة أكواد BadBoy Kick</h1>
+
+  <!-- تسجيل الدخول -->
+  <div class="card" id="loginCard">
+    <h2>تسجيل دخول الأدمن</h2>
+    <label>رابط قاعدة البيانات</label>
+    <input id="db" dir="ltr" value="https://ur-points-default-rtdb.europe-west1.firebasedatabase.app">
+    <label>Web API Key (من إعدادات مشروع Firebase)</label>
+    <input id="key" dir="ltr" placeholder="AIza...">
+    <label>إيميل الأدمن</label>
+    <input id="email" dir="ltr" type="email" autocomplete="username">
+    <label>كلمة السر</label>
+    <input id="pass" dir="ltr" type="password" autocomplete="current-password">
+    <div style="margin-top:12px"><button id="loginBtn">دخول</button></div>
+    <div class="msg" id="loginMsg"></div>
+  </div>
+
+  <div id="app" class="hide">
+    <div class="tabs">
+      <button data-t="create" class="on">إنشاء أكواد</button>
+      <button data-t="list">الأكواد</button>
+      <button data-t="settings">التحكم بالتطبيق</button>
+    </div>
+
+    <!-- إنشاء -->
+    <div id="tab-create">
+      <div class="card">
+        <h2>إنشاء أكواد جديدة</h2>
+        <div class="row">
+          <div><label>العدد (number)</label><input id="count" type="number" min="1" max="500" value="1"></div>
+          <div><label>اسم الكود</label><input id="name" dir="ltr" placeholder="مثال: VIP"></div>
+        </div>
+        <div class="row">
+          <div><label>المدة</label><input id="dur" type="number" min="1" value="1"></div>
+          <div><label>الوحدة</label>
+            <select id="unit">
+              <option value="1">ثواني</option>
+              <option value="60">دقائق</option>
+              <option value="3600" selected>ساعات</option>
+              <option value="86400">أيام</option>
+            </select>
+          </div>
+        </div>
+        <label>ملاحظة (اختياري، لك فقط)</label>
+        <input id="note" placeholder="مثال: عميل أحمد">
+        <p class="hint">العدد = 1 والاسم مكتوب: الكود يكون الاسم كما هو. العدد أكبر من 1: الاسم + رمز عشوائي (مثل VIP-K7M2QX). بدون اسم: كود عشوائي. المدة تبدأ من أول تفعيل للكود.</p>
+        <button id="createBtn">إنشاء</button>
+        <div class="msg" id="createMsg"></div>
+      </div>
+      <div class="card hide" id="resCard">
+        <h2>الأكواد التي تم إنشاؤها</h2>
+        <textarea id="resText" rows="6" readonly></textarea>
+        <div style="margin-top:8px"><button class="sec" id="copyAll">نسخ الكل</button></div>
+      </div>
+    </div>
+
+    <!-- القائمة -->
+    <div id="tab-list" class="hide">
+      <div class="card">
+        <div class="row"><input id="q" placeholder="بحث بالكود أو الملاحظة"><button class="sec" id="reload" style="flex:0 0 90px">تحديث</button></div>
+        <div class="msg" id="listMsg"></div>
+      </div>
+      <div id="codes"></div>
+    </div>
+
+    <!-- الإعدادات -->
+    <div id="tab-settings" class="hide">
+      <div class="card">
+        <h2>التحكم في التطبيق</h2>
+        <label>الحالة</label>
+        <select id="st">
+          <option value="on">تشغيل (التطبيق شغال عادي)</option>
+          <option value="off">إيقاف التطبيق</option>
+          <option value="update">طلب تحديث</option>
+        </select>
+        <label>الرسالة التي تظهر للمستخدم (اختياري)</label>
+        <textarea id="smsg" rows="3" style="direction:rtl;text-align:right"></textarea>
+        <div id="updBox" class="hide">
+          <label>رابط التحديث</label>
+          <input id="upd" dir="ltr" placeholder="https://...">
+          <label style="display:flex;gap:8px;align-items:center;color:var(--fg)"><input id="force" type="checkbox" style="width:auto" checked> تحديث إجباري (بدون زر "لاحقاً")</label>
+        </div>
+        <p class="hint">التغيير يوصل للتطبيق خلال 30 ثانية تقريباً. عند الإيقاف أو التحديث الإجباري تتوقف الصفحة بالكامل (البوتات تقف) وتظهر للمستخدم شاشة بالرسالة. ولما ترجعي الحالة "تشغيل" يرجع التطبيق يشتغل لوحده.</p>
+        <button id="saveState">حفظ</button>
+        <div class="msg" id="setMsg"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const $ = id => document.getElementById(id);
+const S = { db:'', key:'', email:'', pass:'', token:'' };
+const BASE = '/BadBoyKick';
+
+/* ---------- حفظ بيانات غير حساسة محلياً ---------- */
+['db','key','email'].forEach(k => { const v = localStorage.getItem('bbk_'+k); if (v) $(k).value = v; });
+
+function say(id, text, ok) { const e = $(id); e.textContent = text || ''; e.className = 'msg ' + (ok ? 'ok' : 'err'); }
+
+/* ---------- تسجيل الدخول (Firebase Auth) ---------- */
+async function login(silent) {
+  if (!silent) {
+    S.db = $('db').value.trim().replace(/\/+$/, '');
+    S.key = $('key').value.trim();
+    S.email = $('email').value.trim();
+    S.pass = $('pass').value;
+  }
+  const r = await fetch('https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key=' + encodeURIComponent(S.key), {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email: S.email, password: S.pass, returnSecureToken: true })
+  });
+  const j = await r.json();
+  if (!r.ok) throw new Error((j.error && j.error.message) || 'فشل تسجيل الدخول');
+  S.token = j.idToken;
+}
+
+$('loginBtn').onclick = async () => {
+  $('loginBtn').disabled = true; say('loginMsg', 'جاري الدخول...', true);
+  try {
+    await login(false);
+    ['db','key','email'].forEach(k => localStorage.setItem('bbk_'+k, S[k]));
+    $('loginCard').classList.add('hide'); $('app').classList.remove('hide');
+    loadSettings();
+  } catch (e) {
+    say('loginMsg', 'تعذر الدخول: ' + e.message + ' (تأكد من الإيميل وكلمة السر والـ API Key)');
+  }
+  $('loginBtn').disabled = false;
+};
+
+/* ---------- طلبات قاعدة البيانات ---------- */
+async function api(method, path, body, query) {
+  for (let attempt = 0; attempt < 2; attempt++) {
+    const url = S.db + path + '.json?auth=' + encodeURIComponent(S.token) + (query ? '&' + query : '');
+    const r = await fetch(url, {
+      method,
+      headers: body !== undefined ? { 'Content-Type': 'application/json' } : {},
+      body: body !== undefined ? JSON.stringify(body) : undefined
+    });
+    if (r.status === 401 && attempt === 0) { await login(true); continue; }   // انتهت صلاحية التوكن
+    if (!r.ok) throw new Error(r.status === 401 || r.status === 403 ? 'مرفوض من قواعد Firebase (راجع ملف القواعد وUID الأدمن)' : 'خطأ ' + r.status);
+    return r.json();
+  }
+}
+
+/* ---------- التبويبات ---------- */
+document.querySelectorAll('.tabs button').forEach(b => b.onclick = () => {
+  document.querySelectorAll('.tabs button').forEach(x => x.classList.toggle('on', x === b));
+  ['create','list','settings'].forEach(t => $('tab-' + t).classList.toggle('hide', t !== b.dataset.t));
+  if (b.dataset.t === 'list') loadCodes();
+});
+
+/* ---------- إنشاء أكواد ---------- */
+const ALPHA = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+function rnd(n) { const a = new Uint32Array(n); crypto.getRandomValues(a); let o = ''; for (let i = 0; i < n; i++) o += ALPHA[a[i] % ALPHA.length]; return o; }
+function clean(s) { return s.toUpperCase().replace(/[^A-Z0-9_-]/g, ''); }
+
+$('createBtn').onclick = async () => {
+  const count = Math.floor(+$('count').value), dur = +$('dur').value, unit = +$('unit').value;
+  const raw = $('name').value.trim(), name = clean(raw), note = $('note').value.trim();
+  if (!(count >= 1 && count <= 500)) return say('createMsg', 'العدد من 1 إلى 500');
+  if (!(dur > 0)) return say('createMsg', 'اكتب مدة صحيحة');
+  if (raw && !name) return say('createMsg', 'اسم الكود لازم حروف إنجليزية أو أرقام (A-Z / 0-9 / -)');
+  const durationSec = Math.round(dur * unit);
+  $('createBtn').disabled = true; say('createMsg', 'جاري الإنشاء...', true);
+  try {
+    const existing = (await api('GET', BASE + '/codes', undefined, 'shallow=true')) || {};
+    const out = {};
+    if (count === 1 && name) {
+      if (existing[name]) throw new Error('الكود ' + name + ' موجود بالفعل');
+      out[name] = 1;
+    } else {
+      while (Object.keys(out).length < count) {
+        const c = name ? name + '-' + rnd(6) : rnd(8);
+        if (!existing[c] && !out[c]) out[c] = 1;
+      }
+    }
+    const data = {};
+    Object.keys(out).forEach(c => {
+      data[c] = { durationSec, enabled: true, createdAt: { '.sv': 'timestamp' } };
+      if (note) data[c].note = note;
+    });
+    await api('PATCH', BASE + '/codes', data);
+    $('resText').value = Object.keys(data).join('\n');
+    $('resCard').classList.remove('hide');
+    say('createMsg', 'تم إنشاء ' + Object.keys(data).length + ' كود', true);
+  } catch (e) { say('createMsg', e.message); }
+  $('createBtn').disabled = false;
+};
+$('copyAll').onclick = () => { navigator.clipboard.writeText($('resText').value); say('createMsg', 'تم النسخ', true); };
+
+/* ---------- قائمة الأكواد ---------- */
+let ALL = {};
+function fmtDur(sec) {
+  const d = Math.floor(sec / 86400), h = Math.floor(sec % 86400 / 3600), m = Math.floor(sec % 3600 / 60), s = sec % 60, p = [];
+  if (d) p.push(d + ' يوم'); if (h) p.push(h + ' ساعة'); if (m) p.push(m + ' دقيقة'); if (s || !p.length) p.push(s + ' ثانية');
+  return p.join(' و ');
+}
+function status(c) {
+  if (c.enabled === false) return ['موقوف', 't-off', ''];
+  if (!c.activatedAt) return ['غير مستخدم', 't-new', ''];
+  const left = Math.floor((c.activatedAt + c.durationSec * 1000 - Date.now()) / 1000);
+  return left <= 0 ? ['منتهي', 't-exp', ''] : ['نشط', 't-on', 'المتبقي: ' + fmtDur(left)];
+}
+function esc(s) { return String(s).replace(/[&<>"']/g, m => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[m])); }
+
+function render() {
+  const q = $('q').value.trim().toUpperCase(), box = $('codes'); box.innerHTML = '';
+  const keys = Object.keys(ALL).filter(k => !q || k.includes(q) || (ALL[k].note || '').toUpperCase().includes(q))
+    .sort((a, b) => (ALL[b].createdAt || 0) - (ALL[a].createdAt || 0));
+  say('listMsg', keys.length + ' كود', true);
+  keys.forEach(k => {
+    const c = ALL[k], [st, cls, left] = status(c), div = document.createElement('div');
+    div.className = 'code';
+    div.innerHTML = '<b>' + esc(k) + '</b><span class="tag ' + cls + '">' + st + '</span>' +
+      '<div class="meta">المدة: ' + fmtDur(c.durationSec || 0) + (left ? ' — ' + left : '') +
+      (c.deviceId ? ' — جهاز: ' + esc(String(c.deviceId).slice(0, 6)) + '…' : '') +
+      (c.note ? ' — ' + esc(c.note) : '') + '</div>' +
+      '<div class="btns"><button class="sec" data-a="copy">نسخ</button>' +
+      '<button class="sec" data-a="toggle">' + (c.enabled === false ? 'تشغيل' : 'إيقاف') + '</button>' +
+      '<button class="sec" data-a="reset">إعادة تشغيل</button>' +
+      '<button class="bad" data-a="del">حذف</button></div>';
+    div.querySelectorAll('button').forEach(b => b.onclick = () => act(k, b.dataset.a));
+    box.appendChild(div);
+  });
+}
+async function act(k, a) {
+  try {
+    if (a === 'copy') { await navigator.clipboard.writeText(k); return say('listMsg', 'تم نسخ ' + k, true); }
+    if (a === 'toggle') await api('PUT', BASE + '/codes/' + k + '/enabled', ALL[k].enabled === false);
+    if (a === 'reset') {
+      if (!confirm('إعادة تشغيل الكود: يتفك ارتباطه بالجهاز وتبدأ مدته من جديد عند التفعيل القادم. متأكد؟')) return;
+      await api('DELETE', BASE + '/codes/' + k + '/deviceId'); await api('DELETE', BASE + '/codes/' + k + '/activatedAt');
+    }
+    if (a === 'del') { if (!confirm('حذف الكود ' + k + '؟')) return; await api('DELETE', BASE + '/codes/' + k); }
+    await loadCodes();
+  } catch (e) { say('listMsg', e.message); }
+}
+async function loadCodes() {
+  say('listMsg', 'جاري التحميل...', true);
+  try { ALL = (await api('GET', BASE + '/codes')) || {}; render(); } catch (e) { say('listMsg', e.message); }
+}
+$('reload').onclick = loadCodes; $('q').oninput = render;
+
+/* ---------- التحكم بالتطبيق ---------- */
+$('st').onchange = () => $('updBox').classList.toggle('hide', $('st').value !== 'update');
+async function loadSettings() {
+  try {
+    const a = (await api('GET', BASE + '/settings/app_state')) || {};
+    $('st').value = a.status || 'on'; $('smsg').value = a.message || '';
+    $('upd').value = a.update_url || ''; $('force').checked = a.force !== false;
+    $('st').onchange();
+  } catch (e) { /* تجاهل */ }
+}
+$('saveState').onclick = async () => {
+  const st = $('st').value, upd = $('upd').value.trim();
+  if (st === 'update' && upd && !/^https:\/\//i.test(upd)) return say('setMsg', 'رابط التحديث لازم يبدأ بـ https://');
+  try {
+    await api('PUT', BASE + '/settings/app_state', { status: st, message: $('smsg').value.trim(), update_url: upd, force: $('force').checked });
+    say('setMsg', 'تم الحفظ — يوصل للتطبيق خلال 30 ثانية', true);
+  } catch (e) { say('setMsg', e.message); }
+};
+</script>
+</body>
+</html>

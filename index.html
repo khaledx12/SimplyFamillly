@@ -62,7 +62,12 @@ button:disabled{opacity:.5}
         <h2>إنشاء أكواد جديدة</h2>
         <div class="row">
           <div><label>العدد (number)</label><input id="count" type="number" min="1" max="500" value="1"></div>
-          <div><label>اسم الكود</label><input id="name" dir="ltr" placeholder="مثال: VIP"></div>
+          <div><label>اسم الكود</label>
+            <div style="display:flex;gap:6px">
+              <input id="name" dir="ltr" placeholder="مثال: VIP" style="flex:1;min-width:0">
+              <button type="button" class="sec" id="genBtn" title="كود عشوائي جديد" aria-label="كود عشوائي جديد" style="flex:0 0 auto;padding:10px 12px">🎲</button>
+            </div>
+          </div>
         </div>
         <div class="row">
           <div><label>المدة</label><input id="dur" type="number" min="1" value="1"></div>
@@ -220,6 +225,18 @@ $('createBtn').onclick = async () => {
     say('createMsg', 'تم إنشاء ' + Object.keys(data).length + ' كود', true);
   } catch (e) { say('createMsg', e.message); }
   $('createBtn').disabled = false;
+};
+/* زر توليد كود عشوائي غير مستخدم من قبل */
+$('genBtn').onclick = async () => {
+  $('genBtn').disabled = true; say('createMsg', 'جاري توليد كود...', true);
+  try {
+    const existing = (await api('GET', BASE + '/codes', undefined, 'shallow=true')) || {};
+    let c;
+    do { c = rnd(8); } while (existing[c]);
+    $('name').value = c;
+    say('createMsg', 'تم توليد الكود: ' + c, true);
+  } catch (e) { say('createMsg', e.message); }
+  $('genBtn').disabled = false;
 };
 $('copyAll').onclick = () => { navigator.clipboard.writeText($('resText').value); say('createMsg', 'تم النسخ', true); };
 

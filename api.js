@@ -1,89 +1,3 @@
-(function () {
-    if (typeof window === 'undefined' || !window.NativeHttp || window.__nativeHttpInstalled) return;
-    window.__nativeHttpInstalled = true;
-
-    var origFetch = window.fetch.bind(window);
-    var pending = {};
-    var seq = 0;
-
-    window.__nativeHttpDone = function (id, b64) {
-        var p = pending[id];
-        if (!p) return;
-        delete pending[id];
-        try {
-            var bin = atob(b64), bytes = new Uint8Array(bin.length);
-            for (var i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
-            p.resolve(JSON.parse(new TextDecoder('utf-8').decode(bytes)));
-        } catch (e) { p.reject(e); }
-    };
-
-    function isKickUrl(u) {
-        try {
-            var h = new URL(u, location.href).hostname;
-            return h === 'kick.com' || h.slice(-9) === '.kick.com';
-        } catch (e) { return false; }
-    }
-
-    function normHeaders(h) {
-        var out = {};
-        if (!h) return out;
-        if (typeof Headers !== 'undefined' && h instanceof Headers) { h.forEach(function (v, k) { out[k] = v; }); return out; }
-        if (Array.isArray(h)) { h.forEach(function (kv) { out[kv[0]] = kv[1]; }); return out; }
-        for (var k in h) out[k] = h[k];
-        return out;
-    }
-
-    window.fetch = function (input, init) {
-        var url = (typeof input === 'string') ? input : (input && input.url);
-        if (!url || !isKickUrl(url)) return origFetch(input, init);
-        init = init || {};
-
-        var body = init.body;
-        if (body != null) {
-            if (typeof URLSearchParams !== 'undefined' && body instanceof URLSearchParams) body = body.toString();
-            if (typeof body !== 'string') return origFetch(input, init); // FormData/Blob: نادر هنا
-        }
-
-        var id = ++seq;
-        var sig = init.signal;
-
-        return new Promise(function (resolve, reject) {
-            if (sig && sig.aborted) { reject(new DOMException('Aborted', 'AbortError')); return; }
-
-            if (sig) {
-                sig.addEventListener('abort', function () {
-                    if (!pending[id]) return;
-                    delete pending[id];
-                    try { window.NativeHttp.cancel(id); } catch (e) {}
-                    reject(new DOMException('Aborted', 'AbortError'));
-                });
-            }
-
-            pending[id] = {
-                reject: reject,
-                resolve: function (r) {
-                    if (r.error || !r.status) { reject(new TypeError('Network request failed: ' + (r.error || 'no response'))); return; }
-                    var nullBody = (r.status === 204 || r.status === 205 || r.status === 304);
-                    var hdrs = new Headers();
-                    for (var k in (r.headers || {})) { try { hdrs.append(k, r.headers[k]); } catch (e) {} }
-                    resolve(new Response(nullBody ? null : (r.body || ''), { status: r.status, statusText: r.statusText || '', headers: hdrs }));
-                }
-            };
-
-            try {
-                window.NativeHttp.request(id, JSON.stringify({
-                    url: new URL(url, location.href).href,
-                    method: String(init.method || 'GET').toUpperCase(),
-                    headers: normHeaders(init.headers),
-                    body: body == null ? null : body,
-                    timeout: init.timeout || 15000
-                }));
-            } catch (e) { delete pending[id]; reject(e); }
-        });
-    };
-})();
-/* ===== end Native HTTP bridge ===== */
-
 var KICK_BASE = 'https://kick.com';
 var $ = function(id) { return document.getElementById(id); };
 
@@ -1493,14 +1407,14 @@ async function checkSingleTokenStatus(bot){
 function _tcRender(results, list, elapsedMs){
   var content = $('tokenCheckContent');
   if (!content){ return; }
-  var expired = [], active = [], unknown = [];
+  /* المنتهية + التي تعذّر التحقق منها = خانة واحدة (منتهية) */
+  var expired = [], active = [];
   for (var i = 0; i < list.length; i++){
     var b = list[i] || {};
     var r = results[i] || { status:'unknown' };
     var name = (b.username || (r && r.username) || ('حساب #' + (i + 1)));
     if (r && r.status === 'active'){ active.push(r.username || name); }
-    else if (r && r.status === 'expired'){ expired.push(name); }
-    else { unknown.push(name); }
+    else { expired.push(name); }
   }
   var h = '';
   h += '<div class="token-check-stats">';
@@ -1528,18 +1442,8 @@ function _tcRender(results, list, elapsedMs){
     h += '</div>';
   }
 
-  if (unknown.length){
-    h += '<div class="token-check-section-title"><i class="fas fa-circle-question"></i><span>حسابات تعذّر التحقق منها</span></div>';
-    h += '<div class="expired-list" style="max-height:150px">';
-    for (var u = 0; u < unknown.length; u++){
-      h += '<div class="expired-account" style="background:rgba(255,193,7,.06);border-color:rgba(255,193,7,.22);color:#ffe6a3"><i class="fas fa-circle-question" style="color:#ffd966"></i><span>' + escH(unknown[u]) + '</span></div>';
-    }
-    h += '</div>';
-    h += '<div class="token-check-errors"><i class="fas fa-triangle-exclamation"></i> تعذّر التحقق من ' + unknown.length + ' حساب بعد إعادة المحاولة، لذلك لم تُحسب ضمن التوكنات العاملة أو المنتهية. جرّب الضغط على الفحص مرة أخرى.</div>';
-  }
-
   var secs = (Math.round(elapsedMs / 100) / 10);
-  h += '<div class="token-check-note">تم الفحص خلال ' + secs + ' ثانية • الإجمالي: ' + list.length + ' حساب — يعمل: ' + active.length + ' • منتهي: ' + expired.length + ' • غامض: ' + unknown.length + '</div>';
+  h += '<div class="token-check-note">تم الفحص خلال ' + secs + ' ثانية • الإجمالي: ' + list.length + ' حساب — يعمل: ' + active.length + ' • منتهي: ' + expired.length + '</div>';
   content.innerHTML = h;
 }
 

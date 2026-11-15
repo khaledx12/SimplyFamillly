@@ -769,6 +769,8 @@ async function kickVerifyChannelApi(typed) {
     return { ok: false, reason: sawError ? 'error' : 'not_found' };
 }
 
+var RATE_SKIP_COUNT = 2;     /* لو الرسالة اترفضت (حد السرعة) نجرب كام رسالة بعدها */
+var RATE_SKIP_PAUSE = 1500;  /* فاصل بالمللي ثانية بين المحاولات دي */
 var MAX_SEND_RETRIES = 8;
 var RETRY_DELAY = 800;
 
@@ -1137,7 +1139,7 @@ async function runChannelOnce(bot, ch, eff, msgs, interval, infinite, repeatCoun
                 ch.status = 'on';
             }
 
-            var msgSentLocal = false, failCount = 0, lastErr = null, rateHits = 0;
+            var msgSentLocal = false, failCount = 0, lastErr = null, rateHits = 0, rateSkips = 0;
             while (!msgSentLocal && bot.isSending) {
                 if (!infinite && failCount >= MAX_SEND_RETRIES) break;
                 if (rateHits >= 30) break;
@@ -1159,6 +1161,18 @@ async function runChannelOnce(bot, ch, eff, msgs, interval, infinite, repeatCoun
 
                     if (isCritical && !infinite) throw e;
 
+                    if (isRate) {
+                        /* الرسالة اترفضت: من غير أي كتابة على الكارت، نسيبها ونجرب الرسالة اللي بعدها
+                           (بحد أقصى RATE_SKIP_COUNT رسايل)، ولو كلهم اترفضوا نكمل في ميعادنا عادي */
+                        rateSkips++;
+                        if (rateSkips > RATE_SKIP_COUNT || !bot.isSending) break;
+                        currentMsg = nextMessage();
+                        sentInRound++;
+                        try { await delay(RATE_SKIP_PAUSE, abortControllers[bot.id] ? abortControllers[bot.id].signal : undefined); }
+                        catch(aborted) { return 'exit'; }
+                        continue;
+                    }
+
                     if (bot.isSending) {
                         var backoff;
                         if (isNetwork && !NetworkGuard.isOnline) {
@@ -1176,8 +1190,9 @@ async function runChannelOnce(bot, ch, eff, msgs, interval, infinite, repeatCoun
                             }
                             if (!bot.isSending) return 'exit';
                             continue;
-                        } else if (isRate) {
-                            backoff = Math.min(Math.max(((e.retryAfter || 0) * 1000), 3000 + rateHits * 1000), 30000);
+                        } else if (false) {
+                            /* (اتشال) كان بيستنى ويعيد نفس الرسالة */
+                            backoff = 0;
                         } else if (isCritical) {
                             backoff = Math.min(5000 + (failCount * 1500), 30000);
                             if (failCount === 1) toast('('+bot.username+' → '+slug+') '+e.message+' — إعادة خلال '+Math.round(backoff/1000)+'ث', 'i');
@@ -1187,7 +1202,7 @@ async function runChannelOnce(bot, ch, eff, msgs, interval, infinite, repeatCoun
                             backoff = RETRY_DELAY + Math.min(failCount * 200, 2000);
                         }
                         ch.status = 'warning';
-                        ch.error = isRate ? ('حد السرعة — انتظار ('+rateHits+')') : isCritical ? (e.message+' ('+failCount+')') :
+                        ch.error = isCritical ? (e.message+' ('+failCount+')') :
                                       isNetwork ? ('إعادة اتصال ('+failCount+')') :
                                       ('إعادة ('+failCount+')');
                         requestUIUpdate();

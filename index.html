@@ -37,8 +37,7 @@ button:disabled{opacity:.5}
   <!-- تسجيل الدخول -->
   <div class="card" id="loginCard">
     <h2>تسجيل دخول الأدمن</h2>
-    <label>رابط قاعدة البيانات</label>
-    <input id="db" dir="ltr" value="https://ur-points-default-rtdb.europe-west1.firebasedatabase.app">
+    <input id="db" type="hidden" value="https://ur-points-default-rtdb.europe-west1.firebasedatabase.app">
     <label>Web API Key (من إعدادات مشروع Firebase)</label>
     <input id="key" dir="ltr" placeholder="AIza...">
     <label>إيميل الأدمن</label>
@@ -133,7 +132,7 @@ const S = { db:'', key:'', email:'', pass:'', token:'' };
 const BASE = '/BadBoyKick';
 
 /* ---------- حفظ بيانات غير حساسة محلياً ---------- */
-['db','key','email'].forEach(k => { const v = localStorage.getItem('bbk_'+k); if (v) $(k).value = v; });
+['key','email'].forEach(k => { const v = localStorage.getItem('bbk_'+k); if (v) $(k).value = v; });
 
 function say(id, text, ok) { const e = $(id); e.textContent = text || ''; e.className = 'msg ' + (ok ? 'ok' : 'err'); }
 
